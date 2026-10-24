@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Floating items */
+.floating-item {
+  bottom: -12vh;
+  opacity: 0.9;
+  transform-origin: center;
+  animation-name: floatUp, sway;
+  animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+}
+
+/* float upward and rotate */
+@keyframes floatUp {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-140vh) rotate(360deg); }
+}
+
+/* slight sway */
+@keyframes sway {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(12px); }
+  100% { transform: translateX(0); }
+}
+
+/* subtle sparkles/texture */
+.sparkles {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px),
+    radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 64px 64px, 120px 120px;
+  opacity: 0.45;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: shimmer 6s linear infinite;
+}
+
+/* shimmer motion */
+@keyframes shimmer {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+  100% { transform: translateY(0); }
+}
+
+/* small responsive niceties */
+@media (max-width: 768px) {
+  .floating-item { width: 28px !important; }
+  .sparkles { opacity: 0.28; }
+}
