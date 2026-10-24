@@ -1,55 +1,101 @@
+
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-
 import chatRoute from "./routes/chat.js";
 
-dotenv.config();
-
 const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
+const allowedOrigins = new Set([
+  "https://nidhi-ai-blue.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+]);
 
 app.use(
   cors({
-    origin: "https://nidhi-ai-blue.vercel.app",
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      const error = new Error("CORS blocked origin");
+      error.status = 403;
+      callback(error);
+    },
     credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "12mb" }));
+app.use(express.urlencoded({ extended: true, limit: "12mb" }));
 
-// Health Check
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
-    message: "❤️ Nidhi AI Backend Running...",
-    model: process.env.MODEL,
+    name: "Nidhi AI",
+    message: "Your AI companion is online ❤️",
+    model: process.env.MODEL || "gemma4:e2b",
+    capabilities: ["text-chat", "image-analysis"],
+    status: "online",
+    timestamp: new Date().toISOString(),
   });
 });
 
-// Chat Route
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "healthy",
+    uptime: Math.round(process.uptime()),
+  });
+});
+
 app.use("/api/chat", chatRoute);
 
-// 404
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: "Route Not Found",
+    message: "Route not found",
   });
 });
 
-// Error Handler
 app.use((err, req, res, next) => {
-  console.error(err);
+  if (res.headersSent) {
+    return next(err);
+  }
 
-  res.status(500).json({
+  if (err.message === "CORS blocked origin") {
+    return res.status(403).json({
+      success: false,
+      message: "This origin is not allowed.",
+    });
+  }
+
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      success: false,
+      message: "Request is too large. Please use a smaller image.",
+    });
+  }
+
+  console.error("[Nidhi AI Error]", err.message);
+
+  res.status(err.status || 500).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    message:
+      err.status && err.status < 500
+        ? err.message
+        : "Something went wrong. Please try again.",
   });
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server Running On Port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Nidhi AI backend running on port ${PORT}`);
+  console.log(`Model: ${process.env.MODEL || "gemma4:e2b"}`);
 });
